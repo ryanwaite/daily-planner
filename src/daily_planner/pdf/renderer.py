@@ -20,7 +20,9 @@ from daily_planner.models import BriefingData
 from daily_planner.pdf.page_one import build_page_one_stories
 from daily_planner.pdf.page_two import build_page_two_stories
 
-PAGE_WIDTH, PAGE_HEIGHT = letter  # 612 × 792 pt (US Letter)
+# Landscape US Letter: swap width and height
+PAGE_WIDTH, PAGE_HEIGHT = letter[1], letter[0]  # 792 × 612 pt
+LANDSCAPE = (PAGE_WIDTH, PAGE_HEIGHT)
 MARGIN = 0.5 * inch
 GUTTER = 0.25 * inch
 
@@ -35,7 +37,7 @@ def render_briefing_pdf(briefing: BriefingData) -> Path:
 
     doc = BaseDocTemplate(
         str(pdf_path),
-        pagesize=letter,
+        pagesize=LANDSCAPE,
         leftMargin=MARGIN,
         rightMargin=MARGIN,
         topMargin=MARGIN,

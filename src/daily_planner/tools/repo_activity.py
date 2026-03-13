@@ -31,20 +31,25 @@ async def get_repo_activity() -> str:
     since = last_business_day(date.today())
     results: list[dict] = []
 
+    github_token = get_github_token()
+    ado_token = get_ado_token()
+
     for repo in repos:
         try:
             if repo.platform == "github":
-                token = get_github_token(client_id="")  # Client ID from env in production
-                if not token:
+                if not github_token:
                     results.append(_error_result(repo, "GitHub authentication required"))
                     continue
-                activities, readme = await fetch_github_activity(repo, since, token)
+                activities, readme = await fetch_github_activity(
+                    repo, since, github_token,
+                )
             elif repo.platform == "ado":
-                token = get_ado_token(client_id="")  # Client ID from env in production
-                if not token:
+                if not ado_token:
                     results.append(_error_result(repo, "ADO authentication required"))
                     continue
-                activities, readme = await fetch_ado_activity(repo, since, token)
+                activities, readme = await fetch_ado_activity(
+                    repo, since, ado_token,
+                )
             else:
                 results.append(_error_result(repo, f"Unknown platform: {repo.platform}"))
                 continue
