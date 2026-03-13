@@ -1,0 +1,12 @@
+# Daily Planner – Settings
+# Customise font sizes and output location.
+
+[page_one]
+font_size = 9.0        # Calendar, Today Tasks, Tomorrow Tasks columns
+
+[page_two]
+font_size = 8.0        # Repository Activity columns
+
+[output]
+path = "~/Desktop"     # Directory where the PDF is saved
+repos_file = "config/repos.txt"
