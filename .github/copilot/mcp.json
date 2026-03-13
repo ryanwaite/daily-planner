@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "daily-planner": {
+      "type": "stdio",
+      "command": "uv",
+      "args": ["run", "python", "-m", "daily_planner"]
+    }
+  }
+}

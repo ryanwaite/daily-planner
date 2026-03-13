@@ -3,33 +3,74 @@
 ## Prerequisites
 
 - macOS (required for Things 3 database access and Keychain)
-- Python ≥ 3.9
+- Python ≥ 3.12
 - [UV](https://docs.astral.sh/uv/) package manager
 - Things 3 installed with tasks configured
-- Copilot CLI installed and authenticated
-- GitHub OAuth App client ID (for device-code flow)
-- Azure DevOps App registration client ID (for device-code flow)
-- Microsoft Work IQ MCP server configured in Copilot CLI
+- [GitHub Copilot CLI](https://docs.github.com/en/copilot/github-copilot-in-the-cli) installed and authenticated
 
 ## Setup
 
 ```bash
 # Clone and enter the project
+git clone <your-repo-url> daily-planner
 cd daily-planner
 
 # Install dependencies with UV
 uv sync
 
-# Create your repos config file
-cp config/repos.txt.example config/repos.txt
-# Edit config/repos.txt — one repo per line:
-#   github:owner/repo
-#   ado:org/project/repo
+# Edit the repos config — one repo per line (github:owner/repo or ado:org/project/repo)
+nano config/repos.txt
 
 # (Optional) Customise font sizes and output path
-cp config/settings.toml.example config/settings.toml
-# Edit config/settings.toml
+nano config/settings.toml
 ```
+
+## MCP Server Configuration
+
+Copilot CLI needs to know how to launch the daily-planner MCP server.
+Create `~/.copilot/mcp-config.json`:
+
+```json
+{
+  "mcpServers": {
+    "daily-planner": {
+      "type": "stdio",
+      "command": "uv",
+      "args": ["run", "--directory", "/absolute/path/to/daily-planner", "python", "-m", "daily_planner"]
+    }
+  }
+}
+```
+
+> **Replace** `/absolute/path/to/daily-planner` with the actual path
+> to your clone (e.g. `/Users/you/Source/daily-planner`).
+
+### Work IQ (optional — Outlook calendar)
+
+If you have access to the Microsoft Work IQ MCP server, add it to the
+same config file so the agent can fetch calendar events:
+
+```json
+{
+  "mcpServers": {
+    "daily-planner": { "..." : "..." },
+    "workiq": {
+      "type": "stdio",
+      "command": "...",
+      "args": ["..."]
+    }
+  }
+}
+```
+
+Without Work IQ, everything else works — the calendar section
+will simply show "Calendar data unavailable".
+
+### VS Code
+
+For use within VS Code's Copilot Chat, the repo includes
+`.github/copilot/mcp.json` which is picked up automatically
+when you open the project folder.
 
 ## First-Run Authentication
 
@@ -48,24 +89,28 @@ Tokens are stored in the macOS Keychain under the service name
 
 ### Via Copilot CLI agent (primary)
 
+Run from the repo root directory so Copilot CLI can find the
+`.github/agents/` folder:
+
 ```bash
+cd /path/to/daily-planner
 copilot --agent morning-briefing "Generate my morning briefing"
 ```
 
 The agent will:
-1. Fetch calendar events from Work IQ
-2. Fetch today's and tomorrow's tasks from Things
+1. Fetch calendar events from Work IQ (if configured)
+2. Fetch today's and tomorrow's tasks from Things 3
 3. Fetch repo activity from GitHub/ADO
-4. Summarize repo activity using its LLM
+4. Summarise repo activity using its LLM
 5. Generate a two-page PDF
 
-Output: `~/Desktop/2026-03-12 Thursday.pdf` (or configured path)
+Output: `~/Desktop/2026-03-13 Friday.pdf` (or configured path)
 
 ### Direct MCP server (for testing)
 
 ```bash
 # Run as stdio MCP server (used by Copilot CLI automatically)
-uv run python -m daily_planner.server
+uv run python -m daily_planner
 
 # Run tests
 uv run pytest
@@ -102,6 +147,8 @@ repos_file = "config/repos.txt"
 
 | Problem | Solution |
 |---------|----------|
+| `No such agent: morning-briefing` | Make sure you run `copilot` from the repo root so it can find `.github/agents/` |
+| Agent starts but immediately exits | Check that `~/.copilot/mcp-config.json` exists with the correct absolute `--directory` path |
 | "Things database not found" | Ensure Things 3 is installed; check `~/Library/Group Containers/` |
 | "Token expired" for GitHub | Re-run; device-code flow will trigger automatically |
 | "Repos config file not found" | Create `config/repos.txt` per setup instructions |
