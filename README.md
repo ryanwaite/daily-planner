@@ -101,17 +101,29 @@ path = "~/Desktop"
 repos_file = "config/repos.txt"
 ```
 
-### Authentication (Keychain)
+### Authentication
 
-GitHub and Azure DevOps tokens are stored in the macOS Keychain under the service name `daily-planner`. On first run the MCP server initiates an OAuth2 device-code flow — follow the on-screen instructions to authenticate.
+**GitHub** — the token is resolved in this order:
+1. `GITHUB_TOKEN` environment variable
+2. `gh auth token` (if [GitHub CLI](https://cli.github.com/) is installed and authenticated via `gh auth login`)
+3. macOS Keychain (service: `daily-planner`, account: `github_access_token`)
+
+**Azure DevOps** — the token is resolved in this order:
+1. `ADO_TOKEN` environment variable
+2. `az account get-access-token` (if [Azure CLI](https://learn.microsoft.com/en-us/cli/azure/) is installed and authenticated via `az login`)
+3. macOS Keychain (service: `daily-planner`, account: `ado_access_token`)
+
+The easiest path: just run `gh auth login` once and you're set for GitHub repos.
 
 ## Usage
 
 ### Copilot CLI agent (primary)
 
 ```bash
-copilot --agent morning-briefing "Generate my morning briefing"
+copilot --agent morning-briefing --allow-all-tools "Generate my morning briefing"
 ```
+
+> `--allow-all-tools` pre-approves MCP tool calls so the agent can run without interactive permission prompts.
 
 The agent will:
 1. Fetch calendar events from Work IQ (if configured)
