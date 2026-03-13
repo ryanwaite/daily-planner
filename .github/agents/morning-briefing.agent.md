@@ -1,11 +1,5 @@
 ---
-name: morning-briefing
 description: Generate a printable two-page PDF morning briefing with calendar events, tasks, and repository activity summaries.
-tools:
-  - type: mcp
-    server: daily-planner
-  - type: mcp
-    server: workiq
 ---
 
 # Morning Briefing Agent

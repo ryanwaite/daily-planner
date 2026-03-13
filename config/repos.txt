@@ -8,3 +8,13 @@
 # Examples:
 # github:octocat/Hello-World
 # ado:myorg/myproject/myrepo
+
+github:radius-project/radius
+github:radius-project/docs
+github:radius-project/design-notes
+github:radius-project/recipes
+github:radius-project/resource-types-contrib
+github:drasi-prject/drasi-server
+github:drasi-prject/drasi-core
+github:drasi-prject/drasi-platform
+github:drasi-prject/design-documents
