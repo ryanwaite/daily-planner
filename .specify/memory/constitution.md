@@ -1,11 +1,10 @@
 <!--
   Sync Impact Report
   ===================
-  Version change: 1.0.0 → 1.1.0
-  Modified principles:
-    - V. Actionable Output (added date display format rule)
+  Version change: 1.1.0 → 1.2.0
+  Modified principles: None
   Added sections:
-    - Date format standards under Technology Standards
+    - Dependency security checks under Technology Standards
   Removed sections: N/A
   Templates requiring updates:
     - .specify/templates/plan-template.md ✅ reviewed (no changes needed)
@@ -115,6 +114,19 @@ the goal.
     `YYYY-MM-DD dddd` (e.g., `2026-03-12 Thursday`).
   - PDF display dates MUST use
     `dddd, MMMM D, YYYY` (e.g., `Thursday, March 12, 2026`).
+- **Dependency security**:
+  - All third-party packages MUST be pinned to exact versions in
+    `pyproject.toml` (or a lock file) to prevent silent upgrades.
+  - Before adding or upgrading a dependency, a basic security
+    check MUST be performed: verify the package is published by
+    a known maintainer, has no open critical/high CVEs (e.g., via
+    `pip-audit` or `safety`), and is actively maintained.
+  - `pip-audit` (or an equivalent tool) MUST be run as part of
+    the CI pipeline and before any release to detect known
+    vulnerabilities in the dependency tree.
+  - Dependencies with unresolved critical or high CVEs MUST NOT
+    be used unless a documented exception with mitigation is
+    approved.
 
 ## Development Workflow
 
@@ -143,4 +155,4 @@ the goal.
   every feature planning cycle (see Constitution Check in
   plan-template.md).
 
-**Version**: 1.1.0 | **Ratified**: 2026-03-12 | **Last Amended**: 2026-03-12
+**Version**: 1.2.0 | **Ratified**: 2026-03-12 | **Last Amended**: 2026-03-12
