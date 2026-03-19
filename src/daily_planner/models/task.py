@@ -14,6 +14,7 @@ class Task:
     due_date: date
     sort_position: int = 0
     project: str | None = None
+    area: str | None = None
     tags: list[str] = field(default_factory=list)
 
     def __post_init__(self) -> None:
@@ -31,5 +32,6 @@ class Task:
             due_date=due,
             sort_position=data.get("sort_position", 0),
             project=data.get("project"),
+            area=data.get("area"),
             tags=data.get("tags", []),
         )

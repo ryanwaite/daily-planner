@@ -14,7 +14,7 @@ github:radius-project/docs
 github:radius-project/design-notes
 github:radius-project/recipes
 github:radius-project/resource-types-contrib
-github:drasi-prject/drasi-server
-github:drasi-prject/drasi-core
-github:drasi-prject/drasi-platform
-github:drasi-prject/design-documents
+github:drasi-project/drasi-server
+github:drasi-project/drasi-core
+github:drasi-project/drasi-platform
+github:drasi-project/design-documents

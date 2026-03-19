@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import base64
+import re
 import sys
 from datetime import date, datetime
 
@@ -13,6 +14,10 @@ from daily_planner.models.repo import ActivityItem, Repository
 API_BASE = "https://api.github.com"
 TIMEOUT = httpx.Timeout(connect=10, read=30, write=10, pool=10)
 MAX_RETRIES = 1
+MAX_BODY_LEN = 300
+
+# Matches GitHub cross-references like #123, owner/repo#456
+_REF_PATTERN = re.compile(r"(?:[\w.-]+/[\w.-]+)?#\d+")
 
 
 async def fetch_github_activity(
@@ -42,10 +47,13 @@ async def fetch_github_activity(
         )
         if commits is not None:
             for c in commits:
+                msg = c["commit"]["message"]
+                title = msg.split("\n")[0]
+                body = "\n".join(msg.split("\n")[1:]).strip()
                 activities.append(ActivityItem(
                     repo=repo,
                     activity_type="commit",
-                    title=c["commit"]["message"].split("\n")[0],
+                    title=title,
                     author=(
                         c.get("author", {}).get("login", "unknown")
                         if c.get("author")
@@ -55,6 +63,8 @@ async def fetch_github_activity(
                         c["commit"]["author"]["date"].replace("Z", "+00:00")
                     ),
                     url=c.get("html_url"),
+                    body=body[:MAX_BODY_LEN] if body else None,
+                    related_refs=_extract_refs(msg),
                 ))
 
         # Pull Requests
@@ -71,6 +81,9 @@ async def fetch_github_activity(
                 state = "merged" if pr.get("merged_at") else pr["state"]
                 if state == "open":
                     state = "opened"
+                pr_body = (pr.get("body") or "")[:MAX_BODY_LEN] or None
+                pr_labels = [l["name"] for l in pr.get("labels", []) if isinstance(l, dict)]
+                refs = _extract_refs(f"{pr.get('title', '')} {pr.get('body', '')}")
                 activities.append(ActivityItem(
                     repo=repo,
                     activity_type="pr",
@@ -79,6 +92,9 @@ async def fetch_github_activity(
                     timestamp=updated,
                     url=pr.get("html_url"),
                     pr_state=state,
+                    body=pr_body,
+                    labels=pr_labels,
+                    related_refs=refs,
                 ))
 
         # Issues (exclude PRs — GitHub includes PRs in issues endpoint)
@@ -91,6 +107,9 @@ async def fetch_github_activity(
             for issue in issues:
                 if "pull_request" in issue:
                     continue  # Skip PRs
+                issue_body = (issue.get("body") or "")[:MAX_BODY_LEN] or None
+                issue_labels = [l["name"] for l in issue.get("labels", []) if isinstance(l, dict)]
+                refs = _extract_refs(f"{issue.get('title', '')} {issue.get('body', '')}")
                 activities.append(ActivityItem(
                     repo=repo,
                     activity_type="issue",
@@ -98,6 +117,9 @@ async def fetch_github_activity(
                     author=issue["user"]["login"],
                     timestamp=datetime.fromisoformat(issue["updated_at"].replace("Z", "+00:00")),
                     url=issue.get("html_url"),
+                    body=issue_body,
+                    labels=issue_labels,
+                    related_refs=refs,
                 ))
 
         # README excerpt
@@ -135,10 +157,17 @@ async def _get_with_retry(
                 return None  # Don't retry auth or not-found errors
         except httpx.TimeoutException:
             pass
-        except httpx.HTTPError as exc:
-            print(f"GitHub API error for {url}: {exc}", file=sys.stderr)
+        except httpx.HTTPError:
+            print("GitHub API request failed", file=sys.stderr)
 
         if attempt < retries:
             await asyncio.sleep(2 ** attempt)
 
     return None
+
+
+def _extract_refs(text: str) -> list[str]:
+    """Extract GitHub cross-references (#123, owner/repo#456) from text."""
+    if not text:
+        return []
+    return list(dict.fromkeys(_REF_PATTERN.findall(text)))

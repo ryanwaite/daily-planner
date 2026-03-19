@@ -2,11 +2,15 @@
 
 from __future__ import annotations
 
+from collections import OrderedDict
+
 from reportlab.platypus import FrameBreak, Paragraph, Spacer
 
 from daily_planner.models import BriefingData, CalendarEvent
+from daily_planner.models.task import Task
 
 MAX_CALENDAR_EVENTS = 25  # Ellipsis after this many
+INBOX_AREA = "Inbox"
 
 
 def build_page_one_stories(briefing: BriefingData, styles: dict) -> list:
@@ -78,7 +82,7 @@ def _format_event(event: CalendarEvent) -> str:
 
 
 def _build_today_tasks_column(briefing: BriefingData, styles: dict) -> list:
-    """Render today's tasks or error/empty notice."""
+    """Render today's tasks grouped by area, or error/empty notice."""
     if briefing.today_error:
         return [Paragraph(f"Tasks unavailable — {briefing.today_error}", styles["p1_error"])]
 
@@ -88,14 +92,11 @@ def _build_today_tasks_column(briefing: BriefingData, styles: dict) -> list:
     if not briefing.today_tasks:
         return [Paragraph("No tasks due today", styles["p1_body"])]
 
-    items: list = []
-    for task in briefing.today_tasks:
-        items.append(Paragraph(_format_task(task), styles["p1_body"]))
-    return items
+    return _build_area_grouped_tasks(briefing.today_tasks, styles)
 
 
 def _build_tomorrow_tasks_column(briefing: BriefingData, styles: dict) -> list:
-    """Render tomorrow's tasks or error/empty notice."""
+    """Render tomorrow's tasks grouped by area, or error/empty notice."""
     if briefing.tomorrow_error:
         return [Paragraph(f"Tasks unavailable — {briefing.tomorrow_error}", styles["p1_error"])]
 
@@ -105,26 +106,64 @@ def _build_tomorrow_tasks_column(briefing: BriefingData, styles: dict) -> list:
     if not briefing.tomorrow_tasks:
         return [Paragraph("No tasks due tomorrow", styles["p1_body"])]
 
-    items: list = []
-    for task in briefing.tomorrow_tasks:
-        items.append(Paragraph(_format_task(task), styles["p1_body"]))
-
-    # Add spacer to push note area down
+    items = _build_area_grouped_tasks(briefing.tomorrow_tasks, styles)
     items.append(Spacer(1, 12))
     return items
 
 
-def _format_task(task) -> str:
-    """Format a single task as a display string."""
-    text = f"• {_escape(task.title)}"
-    context_parts = []
-    if task.project:
-        context_parts.append(task.project)
-    if task.tags:
-        context_parts.extend(task.tags)
-    if context_parts:
-        text += f" <i>({', '.join(_escape(p) for p in context_parts)})</i>"
-    return text
+def _group_tasks_by_area_and_project(
+    tasks: list[Task],
+) -> OrderedDict[str, OrderedDict[str, list[Task]]]:
+    """Group tasks by area then project, preserving original sort order.
+
+    Returns OrderedDict[area_name, OrderedDict[project_name, tasks]].
+    Tasks without an area are grouped under "Inbox" at the top.
+    Tasks without a project are grouped under "" (empty string) within their area.
+    """
+    groups: OrderedDict[str, OrderedDict[str, list[Task]]] = OrderedDict()
+    for task in tasks:
+        area = task.area or INBOX_AREA
+        project = task.project or ""
+        if area not in groups:
+            groups[area] = OrderedDict()
+        if project not in groups[area]:
+            groups[area][project] = []
+        groups[area][project].append(task)
+
+    # Move Inbox to the top if it exists and isn't the only group
+    if INBOX_AREA in groups and len(groups) > 1:
+        inbox = groups.pop(INBOX_AREA)
+        new_groups: OrderedDict[str, OrderedDict[str, list[Task]]] = OrderedDict()
+        new_groups[INBOX_AREA] = inbox
+        new_groups.update(groups)
+        return new_groups
+
+    return groups
+
+
+def _build_area_grouped_tasks(tasks: list[Task], styles: dict) -> list:
+    """Build flowables for tasks grouped by area and project."""
+    groups = _group_tasks_by_area_and_project(tasks)
+
+    items: list = []
+    for area_name, projects in groups.items():
+        items.append(Paragraph(f"<b>{_escape(area_name)}</b>", styles["p1_body"]))
+        for project_name, project_tasks in projects.items():
+            if project_name:
+                items.append(Paragraph(
+                    f"<i>{_escape(project_name)}</i>", styles["p1_body"]
+                ))
+            for task in project_tasks:
+                items.append(Paragraph(_format_task(task), styles["p1_task"]))
+        items.append(Spacer(1, 4))
+
+    return items
+
+
+def _format_task(task: Task) -> str:
+    """Format a single task with a checkbox and hanging indent."""
+    box = '<font name="CascadiaCode">\u2610</font>'
+    return f"{box} {_escape(task.title)}"
 
 
 def _escape(text: str) -> str:

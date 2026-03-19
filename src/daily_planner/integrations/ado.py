@@ -23,6 +23,9 @@ async def fetch_ado_activity(
 
     Returns (activities, repo_description). On error, returns ([], None).
     """
+    if not isinstance(since, date):
+        raise TypeError(f"since must be a date object, got {type(since).__name__}")
+
     base = f"https://dev.azure.com/{repo.owner}/{repo.project}/_apis"
     headers = {
         "Authorization": f"Bearer {token}",
@@ -83,11 +86,13 @@ async def fetch_ado_activity(
                 ))
 
         # Work Items (via WIQL)
+        # Safety: since is type-checked as date above; isoformat() produces YYYY-MM-DD only
+        since_str = since.isoformat()
         wiql_query = (
             f"SELECT [System.Id], [System.Title], [System.ChangedBy], "
             f"[System.ChangedDate], [System.WorkItemType] "
             f"FROM WorkItems "
-            f"WHERE [System.ChangedDate] >= '{since.isoformat()}' "
+            f"WHERE [System.ChangedDate] >= '{since_str}' "
             f"ORDER BY [System.ChangedDate] DESC"
         )
         wiql_result = await _post_with_retry(
@@ -142,8 +147,8 @@ async def _get_with_retry(
                 return None
         except httpx.TimeoutException:
             pass
-        except httpx.HTTPError as exc:
-            print(f"ADO API error for {url}: {exc}", file=sys.stderr)
+        except httpx.HTTPError:
+            print("ADO API request failed", file=sys.stderr)
 
         if attempt < retries:
             await asyncio.sleep(2 ** attempt)
@@ -170,8 +175,8 @@ async def _post_with_retry(
                 return None
         except httpx.TimeoutException:
             pass
-        except httpx.HTTPError as exc:
-            print(f"ADO API error for {url}: {exc}", file=sys.stderr)
+        except httpx.HTTPError:
+            print("ADO API request failed", file=sys.stderr)
 
         if attempt < retries:
             await asyncio.sleep(2 ** attempt)
