@@ -13,8 +13,11 @@ from daily_planner.integrations.auth import get_ado_token, get_github_token
 from daily_planner.integrations.github import fetch_github_activity
 
 
-async def get_repo_activity() -> str:
+async def get_repo_activity(since_days: int | None = None) -> str:
     """Fetch recent activity for all configured repositories.
+
+    Args:
+        since_days: Number of days to look back. Defaults to last business day.
 
     Returns JSON with per-repo activity data or errors.
     """
@@ -28,7 +31,11 @@ async def get_repo_activity() -> str:
     if not repos:
         return json.dumps({"repos": [], "since_date": None, "error": "No repositories configured"})
 
-    since = last_business_day(date.today())
+    from datetime import timedelta
+    if since_days is not None and since_days > 0:
+        since = date.today() - timedelta(days=since_days)
+    else:
+        since = last_business_day(date.today())
     results: list[dict] = []
 
     github_token = get_github_token()
@@ -64,15 +71,18 @@ async def get_repo_activity() -> str:
                         "timestamp": a.timestamp.isoformat(),
                         "url": a.url,
                         "pr_state": a.pr_state,
+                        "body": a.body,
+                        "labels": a.labels,
+                        "related_refs": a.related_refs,
                     }
                     for a in activities
                 ],
                 "readme_excerpt": readme,
                 "error": None,
             })
-        except Exception as exc:
-            print(f"Error fetching activity for {repo.owner}/{repo.name}: {exc}", file=sys.stderr)
-            results.append(_error_result(repo, str(exc)))
+        except Exception:
+            print(f"Error fetching activity for {repo.owner}/{repo.name}", file=sys.stderr)
+            results.append(_error_result(repo, "Failed to fetch activity"))
 
     return json.dumps({"repos": results, "since_date": since.isoformat()})
 

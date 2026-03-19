@@ -38,6 +38,9 @@ class ActivityItem:
     timestamp: datetime
     url: str | None = None
     pr_state: str | None = None  # "opened", "merged", "closed" (PRs only)
+    body: str | None = None  # Description/message body (truncated)
+    labels: list[str] = field(default_factory=list)
+    related_refs: list[str] = field(default_factory=list)  # Related issue/PR references
 
     def __post_init__(self) -> None:
         if self.activity_type not in ("commit", "pr", "issue"):

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 from datetime import date, datetime
+from pathlib import Path
 
 from daily_planner.config.loader import load_configuration
 from daily_planner.models import (
@@ -16,6 +17,21 @@ from daily_planner.models import (
 )
 from daily_planner.models.repo import ActivityItem
 from daily_planner.pdf.renderer import render_briefing_pdf
+
+# Allowed base directory for PDF output (user's home directory)
+_ALLOWED_BASE = Path.home().resolve()
+
+
+def _validate_output_path(output_path: str) -> str:
+    """Validate that output_path resolves within the user's home directory."""
+    resolved = Path(output_path).expanduser().resolve()
+    try:
+        resolved.relative_to(_ALLOWED_BASE)
+    except ValueError:
+        raise ValueError(
+            f"output_path must be within {_ALLOWED_BASE}, got: {resolved}"
+        )
+    return str(resolved)
 
 
 async def render_pdf(
@@ -34,10 +50,11 @@ async def render_pdf(
     """
     config = load_configuration()
     if output_path:
+        validated_path = _validate_output_path(output_path)
         config = Configuration(
             page_one_font_size=config.page_one_font_size,
             page_two_font_size=config.page_two_font_size,
-            output_path=output_path,
+            output_path=validated_path,
             repos_file=config.repos_file,
         )
 
@@ -96,6 +113,9 @@ def _parse_repo_summary(data: dict) -> RepoSummary:
             timestamp=datetime.fromisoformat(act["timestamp"]),
             url=act.get("url"),
             pr_state=act.get("pr_state"),
+            body=act.get("body"),
+            labels=act.get("labels", []),
+            related_refs=act.get("related_refs", []),
         ))
 
     return RepoSummary(

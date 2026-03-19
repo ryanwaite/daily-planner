@@ -8,6 +8,8 @@ from pathlib import Path
 from reportlab.lib.pagesizes import letter
 from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
 from reportlab.lib.units import inch
+from reportlab.pdfbase import pdfmetrics
+from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.platypus import (
     BaseDocTemplate,
     Frame,
@@ -20,10 +22,34 @@ from daily_planner.models import BriefingData
 from daily_planner.pdf.page_one import build_page_one_stories
 from daily_planner.pdf.page_two import build_page_two_stories
 
+# Register Helvetica Neue font family from macOS system TTC
+_HELVETICA_NEUE_TTC = Path("/System/Library/Fonts/HelveticaNeue.ttc")
+if _HELVETICA_NEUE_TTC.exists():
+    pdfmetrics.registerFont(TTFont("HelveticaNeue", str(_HELVETICA_NEUE_TTC), subfontIndex=0))
+    pdfmetrics.registerFont(TTFont("HelveticaNeue-Bold", str(_HELVETICA_NEUE_TTC), subfontIndex=1))
+    pdfmetrics.registerFont(TTFont("HelveticaNeue-Italic", str(_HELVETICA_NEUE_TTC), subfontIndex=2))
+    pdfmetrics.registerFont(TTFont("HelveticaNeue-BoldItalic", str(_HELVETICA_NEUE_TTC), subfontIndex=3))
+    from reportlab.pdfbase.pdfmetrics import registerFontFamily
+    registerFontFamily(
+        "HelveticaNeue",
+        normal="HelveticaNeue",
+        bold="HelveticaNeue-Bold",
+        italic="HelveticaNeue-Italic",
+        boldItalic="HelveticaNeue-BoldItalic",
+    )
+
+FONT_NAME = "HelveticaNeue"
+
+# Also register Cascadia Code for checkbox glyph support
+_CASCADIA_PATH = Path.home() / "Library" / "Fonts" / "CascadiaCode.ttf"
+if _CASCADIA_PATH.exists():
+    pdfmetrics.registerFont(TTFont("CascadiaCode", str(_CASCADIA_PATH)))
+
 # Landscape US Letter: swap width and height
 PAGE_WIDTH, PAGE_HEIGHT = letter[1], letter[0]  # 792 × 612 pt
 LANDSCAPE = (PAGE_WIDTH, PAGE_HEIGHT)
 MARGIN = 0.5 * inch
+TOP_MARGIN = 0.75 * inch
 GUTTER = 0.25 * inch
 
 
@@ -40,13 +66,13 @@ def render_briefing_pdf(briefing: BriefingData) -> Path:
         pagesize=LANDSCAPE,
         leftMargin=MARGIN,
         rightMargin=MARGIN,
-        topMargin=MARGIN,
+        topMargin=TOP_MARGIN,
         bottomMargin=MARGIN,
     )
 
     # --- Page 1: three-column layout ---
     usable_w = PAGE_WIDTH - 2 * MARGIN
-    usable_h = PAGE_HEIGHT - 2 * MARGIN
+    usable_h = PAGE_HEIGHT - TOP_MARGIN - MARGIN
     col3_w = (usable_w - 2 * GUTTER) / 3
 
     frames_p1 = [
@@ -100,9 +126,10 @@ def _page_one_header(briefing: BriefingData):
     """Return a callback that draws the page-one header."""
     def draw(canvas, doc):
         canvas.saveState()
-        canvas.setFont("Helvetica-Bold", 12)
+        canvas.setFont(FONT_NAME, 12)
         display_date = _format_display_date(briefing.date)
-        canvas.drawString(MARGIN, PAGE_HEIGHT - 0.35 * inch, f"Morning Briefing — {display_date}")
+        # Align with frame content (frame has 6pt internal padding)
+        canvas.drawString(MARGIN + 6, PAGE_HEIGHT - 0.60 * inch, f"Morning Briefing \u2014 {display_date}")
         canvas.restoreState()
     return draw
 
@@ -111,8 +138,8 @@ def _page_two_header(briefing: BriefingData):
     """Return a callback that draws the page-two header."""
     def draw(canvas, doc):
         canvas.saveState()
-        canvas.setFont("Helvetica-Bold", 12)
-        canvas.drawString(MARGIN, PAGE_HEIGHT - 0.35 * inch, "Repository Activity")
+        canvas.setFont(FONT_NAME, 12)
+        canvas.drawString(MARGIN + 6, PAGE_HEIGHT - 0.60 * inch, "Repository Activity")
         canvas.restoreState()
     return draw
 
@@ -124,6 +151,7 @@ def _build_styles(p1_font_size: float, p2_font_size: float) -> dict[str, Paragra
         "p1_heading": ParagraphStyle(
             "p1_heading",
             parent=base["Heading4"],
+            fontName=FONT_NAME,
             fontSize=p1_font_size + 2,
             spaceAfter=4,
             leading=p1_font_size + 4,
@@ -131,13 +159,25 @@ def _build_styles(p1_font_size: float, p2_font_size: float) -> dict[str, Paragra
         "p1_body": ParagraphStyle(
             "p1_body",
             parent=base["Normal"],
+            fontName=FONT_NAME,
             fontSize=p1_font_size,
             leading=p1_font_size + 3,
             spaceAfter=2,
         ),
+        "p1_task": ParagraphStyle(
+            "p1_task",
+            parent=base["Normal"],
+            fontName=FONT_NAME,
+            fontSize=p1_font_size,
+            leading=p1_font_size + 3,
+            spaceAfter=2,
+            leftIndent=8,
+            firstLineIndent=-8,
+        ),
         "p1_error": ParagraphStyle(
             "p1_error",
             parent=base["Normal"],
+            fontName=FONT_NAME,
             fontSize=p1_font_size,
             leading=p1_font_size + 3,
             textColor="red",
@@ -146,6 +186,7 @@ def _build_styles(p1_font_size: float, p2_font_size: float) -> dict[str, Paragra
         "p2_heading": ParagraphStyle(
             "p2_heading",
             parent=base["Heading4"],
+            fontName=FONT_NAME,
             fontSize=p2_font_size + 2,
             spaceAfter=4,
             leading=p2_font_size + 4,
@@ -153,6 +194,7 @@ def _build_styles(p1_font_size: float, p2_font_size: float) -> dict[str, Paragra
         "p2_body": ParagraphStyle(
             "p2_body",
             parent=base["Normal"],
+            fontName=FONT_NAME,
             fontSize=p2_font_size,
             leading=p2_font_size + 3,
             spaceAfter=2,
@@ -160,6 +202,7 @@ def _build_styles(p1_font_size: float, p2_font_size: float) -> dict[str, Paragra
         "p2_error": ParagraphStyle(
             "p2_error",
             parent=base["Normal"],
+            fontName=FONT_NAME,
             fontSize=p2_font_size,
             leading=p2_font_size + 3,
             textColor="red",
