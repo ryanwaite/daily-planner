@@ -27,6 +27,9 @@ error as `tomorrow_error`.
 ## Step 4 — Repository Activity
 
 Call the **daily-planner** MCP tool `get_repo_activity`.
+By default it looks back to the last business day. If the user requests a
+wider window, pass `since_business_days` (e.g. `5` for the last full work
+week).
 Parse the returned JSON to get per-repo activity data.
 
 ## Step 5 — Summarise Repo Activity

@@ -171,6 +171,19 @@
 
 ---
 
+## Phase 9: Enhancement — Configurable Business-Day Lookback
+
+**Purpose**: Allow repo activity lookback to span multiple business days instead of only the last one
+
+- [x] T047 [US4] Add `n_business_days_back(d, n)` helper to `src/daily_planner/business_day.py` — walks back N business days, skipping weekends; raises `ValueError` for n < 1
+- [x] T048 [US4] Rename `since_days` parameter to `since_business_days` in `src/daily_planner/tools/repo_activity.py` and `src/daily_planner/server.py`; use `n_business_days_back` when `since_business_days > 1`, default to `last_business_day` otherwise
+- [x] T049 [US4] Update agent instructions in `.github/agents/morning-briefing.agent.md` Step 4 to document the optional `since_business_days` parameter
+- [x] T050 [US4] Write unit tests for `n_business_days_back` (weekend crossings, equivalence with `last_business_day`, invalid input) in `tests/unit/test_business_day.py`
+
+**Checkpoint**: `get_repo_activity` defaults to last business day; optional `since_business_days` widens the lookback window
+
+---
+
 ## Dependencies & Execution Order
 
 ### Phase Dependencies
