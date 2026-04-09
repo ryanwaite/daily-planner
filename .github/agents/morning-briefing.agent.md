@@ -37,7 +37,7 @@ Parse the returned JSON to get per-repo activity data.
 For **every** repository returned by `get_repo_activity` (whether it has
 recent activity or not), generate a narrative briefing — unless the repo
 returned an `error`. This briefing is for a **director of software
-engineering** who has about **3 minutes** to read each repository section.
+engineering** who has about **5 minutes** to read each repository section.
 
 For repos with no recent activity, the narrative should still provide
 useful context: check the repo for open milestones, recent releases, or
