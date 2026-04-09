@@ -90,15 +90,22 @@ Same error shape as `get_today_tasks`.
 ## Tool: `get_repo_activity`
 
 **Description**: Fetch recent activity (commits, PRs, issues/work
-items) since the last business day for all configured repositories.
-Returns raw structured data for the agent to summarize.
+items) since the last business day (default) for all configured
+repositories. Accepts an optional `since_business_days` parameter to
+widen the lookback window. Returns raw structured data for the agent
+to summarize.
 
 ### Input Schema
 
 ```json
 {
   "type": "object",
-  "properties": {},
+  "properties": {
+    "since_business_days": {
+      "type": ["integer", "null"],
+      "description": "Number of business days to look back. Defaults to 1 (last business day). Pass e.g. 5 for the last full work week."
+    }
+  },
   "additionalProperties": false
 }
 ```

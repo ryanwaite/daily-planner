@@ -6,18 +6,19 @@ import json
 import sys
 from datetime import date
 
-from daily_planner.business_day import last_business_day
+from daily_planner.business_day import last_business_day, n_business_days_back
 from daily_planner.config.loader import load_configuration, load_repositories
 from daily_planner.integrations.ado import fetch_ado_activity
 from daily_planner.integrations.auth import get_ado_token, get_github_token
 from daily_planner.integrations.github import fetch_github_activity
 
 
-async def get_repo_activity(since_days: int | None = None) -> str:
+async def get_repo_activity(since_business_days: int | None = None) -> str:
     """Fetch recent activity for all configured repositories.
 
     Args:
-        since_days: Number of days to look back. Defaults to last business day.
+        since_business_days: Number of business days to look back.
+            Defaults to 1 (the last business day).
 
     Returns JSON with per-repo activity data or errors.
     """
@@ -31,9 +32,8 @@ async def get_repo_activity(since_days: int | None = None) -> str:
     if not repos:
         return json.dumps({"repos": [], "since_date": None, "error": "No repositories configured"})
 
-    from datetime import timedelta
-    if since_days is not None and since_days > 0:
-        since = date.today() - timedelta(days=since_days)
+    if since_business_days is not None and since_business_days > 1:
+        since = n_business_days_back(date.today(), since_business_days)
     else:
         since = last_business_day(date.today())
     results: list[dict] = []

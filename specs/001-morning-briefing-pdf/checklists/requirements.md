@@ -2,6 +2,7 @@
 
 **Purpose**: Validate specification completeness and quality before proceeding to planning  
 **Created**: 2026-03-12  
+**Updated**: 2026-04-02  
 **Feature**: [spec.md](../spec.md)
 
 ## Content Quality
@@ -33,4 +34,5 @@
 
 - All items pass. Specification is ready for `/speckit.clarify` or `/speckit.plan`.
 - Things data access method assumed to be local macOS access (URL scheme or local DB) — documented in Assumptions section.
-- Work IQ MCP server authentication documented as a requirement (FR-001, FR-013) with the assumption of a standard OAuth2/token flow noted in Assumptions.
+- WorkIQ MCP server authentication documented as a requirement (FR-001, FR-013) with the assumption of a standard OAuth2/token flow noted in Assumptions.
+- **2026-04-02 update**: Spec restructured from single agent skill to two independent skills (Daily View + Repo Activity). MCP tools split into `render_daily_view`, `render_repo_activity`, and `render_pdf` (merge). User stories reorganized: Story 1 = Skill 1 (Daily View), Story 2 = Skill 2 (Repo Activity), Story 3 = Combined briefing, Story 4 = Configuration. New success criterion SC-007 added for skill independence. New edge case added for partial skill failure.

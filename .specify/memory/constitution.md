@@ -95,11 +95,11 @@ the goal.
 
 ## Technology Standards
 
-- **Language**: Python ≥ 3.9.
+- **Language**: Python ≥ 3.12.
 - **Project management**: `pyproject.toml` with dependencies
   declared under `[project.dependencies]`.
-- **CLI framework**: A lightweight library (e.g., `click` or
-  `argparse`); heavy frameworks MUST be avoided.
+- **Server framework**: MCP server via FastMCP (stdio transport);
+  heavy frameworks MUST be avoided.
 - **PDF generation**: A library suitable for simple document
   layout (e.g., `reportlab` or `weasyprint`).
 - **HTTP client**: `httpx` or `requests` with configurable

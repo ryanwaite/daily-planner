@@ -35,3 +35,18 @@ def last_business_day(d: date) -> date:
     if weekday == 5:  # Saturday
         return d - timedelta(days=1)
     return d - timedelta(days=1)
+
+
+def n_business_days_back(d: date, n: int) -> date:
+    """Return the date *n* business days before *d*.
+
+    Walks backwards one business day at a time. ``n=1`` is equivalent to
+    ``last_business_day(d)``.
+    """
+    if n < 1:
+        msg = f"n must be >= 1, got {n}"
+        raise ValueError(msg)
+    result = d
+    for _ in range(n):
+        result = last_business_day(result)
+    return result

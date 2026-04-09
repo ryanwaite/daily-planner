@@ -57,15 +57,17 @@ async def get_tomorrow_tasks() -> str:
 
 # --- Tool: get_repo_activity ---
 @mcp.tool()
-async def get_repo_activity(since_days: int | None = None) -> str:
+async def get_repo_activity(since_business_days: int | None = None) -> str:
     """Fetch recent commit, PR, and issue activity from all configured repositories.
 
     Args:
-        since_days: Number of days to look back. Defaults to last business day if not set.
+        since_business_days: Number of business days to look back.
+            Defaults to 1 (the last business day). Pass a higher number to
+            widen the lookback window (e.g. 5 for the last full work week).
     """
     from daily_planner.tools.repo_activity import get_repo_activity as _get_repo_activity
 
-    return await _get_repo_activity(since_days=since_days)
+    return await _get_repo_activity(since_business_days=since_business_days)
 
 
 def main() -> None:
