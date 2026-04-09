@@ -101,15 +101,41 @@ class TestGetRepoActivityContract:
 
     def test_output_shape(self):
         sample = {
+            "since_date": "2026-03-12",
+            "activity_dir": ".tmp/repo_activity",
             "repos": [
                 {
-                    "repo": {"platform": "github", "owner": "o", "name": "n", "url": "x"},
-                    "activities": [],
-                    "readme_excerpt": None,
+                    "name": "o/n",
+                    "platform": "github",
+                    "commits": 5,
+                    "prs": 3,
+                    "issues": 2,
+                    "file": ".tmp/repo_activity/github_o_n.json",
                     "error": None,
                 }
             ],
-            "since_date": "2026-03-12",
         }
         assert "repos" in sample
         assert "since_date" in sample
+        assert "activity_dir" in sample
+        repo = sample["repos"][0]
+        assert "name" in repo
+        assert "platform" in repo
+        assert "commits" in repo
+        assert "prs" in repo
+        assert "issues" in repo
+        assert "file" in repo
+        assert "error" in repo
+
+    def test_error_repo_shape(self):
+        error_entry = {
+            "name": "o/n",
+            "platform": "github",
+            "commits": 0,
+            "prs": 0,
+            "issues": 0,
+            "file": None,
+            "error": "GitHub authentication required",
+        }
+        assert error_entry["file"] is None
+        assert error_entry["error"] is not None
