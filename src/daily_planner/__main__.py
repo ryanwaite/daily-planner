@@ -10,6 +10,7 @@ import atexit
 import os
 import shutil
 import sys
+import tempfile
 from pathlib import Path
 
 
@@ -18,6 +19,9 @@ def _setup_local_tmpdir() -> None:
     tmp_dir = Path.cwd() / ".tmp"
     tmp_dir.mkdir(exist_ok=True)
     os.environ["TMPDIR"] = str(tmp_dir)
+    # Also set tempfile.tempdir so that any library calling tempfile.gettempdir()
+    # (including those that cached the result before TMPDIR was set) uses our local dir.
+    tempfile.tempdir = str(tmp_dir)
 
     def _cleanup() -> None:
         try:

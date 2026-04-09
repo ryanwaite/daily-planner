@@ -5,6 +5,7 @@ from __future__ import annotations
 from datetime import date
 from pathlib import Path
 
+from reportlab.lib import rltempfile as _rltempfile
 from reportlab.lib.pagesizes import letter
 from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
 from reportlab.lib.units import inch
@@ -21,6 +22,13 @@ from reportlab.platypus import (
 from daily_planner.models import BriefingData
 from daily_planner.pdf.page_one import build_page_one_stories
 from daily_planner.pdf.page_two import build_page_two_stories
+
+# Point ReportLab's internal temp dir to the local .tmp/reportlab/ directory so that
+# font caches and other intermediates never land in system temp directories (avoids
+# macOS permission prompts when running the agent non-interactively).
+_rl_tmp = Path.cwd() / ".tmp" / "reportlab"
+_rl_tmp.mkdir(parents=True, exist_ok=True)
+_rltempfile._rl_tempdir = str(_rl_tmp)
 
 # Register Helvetica Neue font family from macOS system TTC
 _HELVETICA_NEUE_TTC = Path("/System/Library/Fonts/HelveticaNeue.ttc")
