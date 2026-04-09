@@ -171,7 +171,9 @@ BriefingData
 
 ## Business Day Logic
 
-- "Next business day" for a Friday is Monday.
-- "Last business day" for a Monday is Friday.
-- Tue–Fri: previous weekday = day - 1.
+- `next_business_day(d)`: Friday → Monday (+3); Sat/Sun → Monday; otherwise +1.
+- `last_business_day(d)`: Monday → Friday (−3); Sat/Sun → Friday; otherwise −1.
+- `n_business_days_back(d, n)`: Walk back N business days by calling
+  `last_business_day` N times. `n=1` is equivalent to `last_business_day(d)`.
+  Raises `ValueError` if `n < 1`.
 - Public holidays are NOT accounted for (per spec assumptions).

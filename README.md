@@ -147,7 +147,7 @@ uv run python -m daily_planner
 | `No such agent: morning-briefing` | Ensure you're running from the repo root so Copilot CLI can find `.github/agents/` |
 | Agent starts but immediately exits | Check that `~/.copilot/mcp-config.json` exists and the `--directory` path is correct |
 | "Things database not found" | Ensure Things 3 is installed; check `~/Library/Group Containers/` |
-| "Token expired" for GitHub | Re-run; the device-code flow will trigger automatically |
+| "Token expired" for GitHub | Run `gh auth login` to refresh your CLI token, or update `GITHUB_TOKEN` env var |
 | "Repos config file not found" | Create `config/repos.txt` per the configuration section above |
 | PDF sections show "Unavailable" | Check stderr output for the specific integration error |
 | Font sizes not changing | Ensure `config/settings.toml` is valid TOML syntax |
