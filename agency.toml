@@ -1,0 +1,4 @@
+[mcps]
+
+[mcps.builtins]
+workiq = true
