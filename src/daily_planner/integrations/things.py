@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import sys
-from datetime import date
+from datetime import date, datetime
 
 from daily_planner.models.task import Task
 
@@ -15,14 +15,15 @@ except ImportError:
     Database = None  # type: ignore[assignment,misc]
 
 
-def _build_metadata_maps() -> tuple[dict[str, str], dict[str, str]]:
-    """Build mappings of task UUID -> area title and project UUID -> project title.
+def _build_metadata_maps() -> tuple[dict[str, str], dict[str, str], dict[str, date]]:
+    """Build mappings of task UUID -> area title, project UUID -> project title,
+    and area_title -> creation date.
 
     Returns:
-        A tuple of (task_area_map, project_title_map).
+        A tuple of (task_area_map, project_title_map, area_created_map).
     """
     if Database is None:
-        return {}, {}
+        return {}, {}, {}
 
     try:
         db = Database()
@@ -30,10 +31,18 @@ def _build_metadata_maps() -> tuple[dict[str, str], dict[str, str]]:
         db.connection.row_factory = None
 
         try:
-            # uuid -> title for all areas
+            # uuid -> title for all areas, plus creation date
             area_titles: dict[str, str] = {}
-            for row in db.connection.execute("SELECT uuid, title FROM TMArea").fetchall():
+            area_created: dict[str, date] = {}  # area_title -> creation date
+            for row in db.connection.execute(
+                "SELECT uuid, title, creationDate FROM TMArea"
+            ).fetchall():
                 area_titles[row[0]] = row[1]
+                if row[2]:
+                    try:
+                        area_created[row[1]] = datetime.fromtimestamp(row[2]).date()
+                    except (ValueError, OSError, TypeError):
+                        pass
 
             # project uuid -> project title (type=1 is project in Things DB)
             project_titles: dict[str, str] = {}
@@ -59,13 +68,13 @@ def _build_metadata_maps() -> tuple[dict[str, str], dict[str, str]]:
                     if proj_row and proj_row[0] and proj_row[0] in area_titles:
                         task_area[task_uuid] = area_titles[proj_row[0]]
 
-            return task_area, project_titles
+            return task_area, project_titles, area_created
         finally:
             db.connection.row_factory = old_factory
             db.connection.close()
     except Exception as exc:
         print(f"Warning: Failed to read metadata: {exc}", file=sys.stderr)
-        return {}, {}
+        return {}, {}, {}
 
 
 def get_tasks_for_date(target_date: date, query_type: str = "today") -> list[Task] | None:
@@ -98,19 +107,21 @@ def get_tasks_for_date(target_date: date, query_type: str = "today") -> list[Tas
         print(f"Warning: Failed to read Things database: {exc}", file=sys.stderr)
         return None
 
-    area_map, project_titles = _build_metadata_maps()
+    area_map, project_titles, area_created_map = _build_metadata_maps()
 
     tasks: list[Task] = []
     for i, raw in enumerate(raw_tasks):
         task_uuid = raw.get("uuid", "")
         project_uuid = raw.get("project") if isinstance(raw.get("project"), str) else None
         project_name = project_titles.get(project_uuid, None) if project_uuid else None
+        area_name = area_map.get(task_uuid)
         tasks.append(Task(
             title=raw.get("title", "Untitled"),
             due_date=target_date,
             sort_position=i,
             project=project_name,
-            area=area_map.get(task_uuid),
+            area=area_name,
+            area_created=area_created_map.get(area_name) if area_name else None,
             tags=raw.get("tags", []) if isinstance(raw.get("tags"), list) else [],
         ))
 

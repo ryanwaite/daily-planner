@@ -7,9 +7,9 @@ from mcp.server.fastmcp import FastMCP
 mcp = FastMCP("daily-planner")
 
 
-# --- Tool: render_pdf ---
+# --- Tool: render_markdown ---
 @mcp.tool()
-async def render_pdf(
+async def render_markdown(
     repo_summaries: list[dict],
     calendar_events: list[dict] | None = None,
     calendar_error: str | None = None,
@@ -17,15 +17,16 @@ async def render_pdf(
     today_error: str | None = None,
     tomorrow_tasks: list[dict] | None = None,
     tomorrow_error: str | None = None,
+    action_suggestions: list[dict] | None = None,
     output_path: str | None = None,
 ) -> str:
-    """Accept all gathered briefing data and produce a two-page US Letter PDF.
+    """Accept all gathered briefing data and produce a markdown morning briefing.
 
-    Returns JSON with pdf_path and page count.
+    Returns JSON with markdown_path.
     """
-    from daily_planner.tools.render_pdf import render_pdf as _render_pdf
+    from daily_planner.tools.render_markdown import render_markdown as _render_markdown
 
-    return await _render_pdf(
+    return await _render_markdown(
         repo_summaries=repo_summaries,
         calendar_events=calendar_events,
         calendar_error=calendar_error,
@@ -33,6 +34,7 @@ async def render_pdf(
         today_error=today_error,
         tomorrow_tasks=tomorrow_tasks,
         tomorrow_error=tomorrow_error,
+        action_suggestions=action_suggestions,
         output_path=output_path,
     )
 

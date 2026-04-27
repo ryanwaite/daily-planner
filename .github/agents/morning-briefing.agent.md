@@ -1,10 +1,10 @@
 ---
-description: Generate a printable two-page PDF morning briefing with calendar events, tasks, and repository activity summaries.
+description: Generate a markdown morning briefing file with calendar events, tasks grouped by Area, AI action suggestions, and repository activity summaries.
 ---
 
 # Morning Briefing Agent
 
-You generate a daily morning briefing PDF. Follow these steps in order:
+You generate a daily morning briefing as a markdown file. Follow these steps in order:
 
 ## Step 1 — Calendar Events
 
@@ -68,7 +68,9 @@ context above.
 
 ### Writing the narrative
 
-Write the summary following this structure:
+Write the summary following this structure. Separate each numbered
+section below with a **blank line** to ensure clear visual separation
+between themes in the final output:
 
 1. **Themes of work**: Group related commits, PRs, and issues into the
    2–4 major workstreams or initiatives they represent. Name each theme
@@ -102,9 +104,28 @@ Use a mix of short paragraphs and inline references (e.g. "PR #142",
 Attach each summary as the `narrative` field on the corresponding repo
 entry.
 
-## Step 6 — Render PDF
+## Step 5.5 — Generate Action Suggestions
 
-Call the **daily-planner** MCP tool `render_pdf` with all assembled data:
+Review the `today_tasks` list from Step 2. Filter for tasks where the
+`area` field is `null` (these are unassigned / "No Area" tasks).
+
+If there are any unassigned tasks:
+
+1. **Randomly select** up to 5 of them (to surface variety each day).
+2. For each selected task, generate a **short (1–3 sentence) actionable
+   suggestion** — a concrete next step the user could take to move that
+   item closer to completion. Be specific and practical (e.g. "Search
+   for a local plumber and request a quote" rather than "Make progress
+   on this").
+3. Store the result as `action_suggestions` — a list of objects, each
+   with `task_title` (string) and `suggestion` (string).
+
+If there are **no** unassigned tasks, set `action_suggestions` to an
+empty list or null.
+
+## Step 6 — Render Markdown
+
+Call the **daily-planner** MCP tool `render_markdown` with all assembled data:
 
 - `calendar_events` (or null)
 - `calendar_error` (or null)
@@ -112,10 +133,11 @@ Call the **daily-planner** MCP tool `render_pdf` with all assembled data:
 - `today_error` (or null)
 - `tomorrow_tasks` (or null)
 - `tomorrow_error` (or null)
+- `action_suggestions` (list of objects, or null/empty)
 - `repo_summaries` — list of per-repo objects with `repo`, `activities`,
   `narrative`, and `error` fields
 
 ## Step 7 — Report
 
-Tell the user the path to the generated PDF and a brief summary of what
+Tell the user the path to the generated markdown file and a brief summary of what
 was included (number of events, tasks, repos).

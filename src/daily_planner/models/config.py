@@ -10,8 +10,6 @@ from pathlib import Path
 class Configuration:
     """User-editable settings loaded from config/settings.toml."""
 
-    page_one_font_size: float = 9.0
-    page_two_font_size: float = 8.0
     output_path: str = "~/Desktop"
     repos_file: str = "config/repos.txt"
 

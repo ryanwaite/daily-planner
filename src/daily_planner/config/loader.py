@@ -20,13 +20,9 @@ def load_configuration(settings_path: str = "config/settings.toml") -> Configura
     with p.open("rb") as f:
         data = tomli.load(f)
 
-    page_one = data.get("page_one", {})
-    page_two = data.get("page_two", {})
     output = data.get("output", {})
 
     return Configuration(
-        page_one_font_size=float(page_one.get("font_size", 9.0)),
-        page_two_font_size=float(page_two.get("font_size", 8.0)),
         output_path=output.get("path", "~/Desktop"),
         repos_file=output.get("repos_file", "config/repos.txt"),
     )

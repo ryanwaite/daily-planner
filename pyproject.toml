@@ -1,12 +1,11 @@
 [project]
 name = "daily-planner"
 version = "0.1.0"
-description = "MCP server that generates a printable two-page PDF morning briefing"
+description = "MCP server that generates a markdown morning briefing"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
     "mcp>=1.0.0",
-    "reportlab>=4.1",
     "httpx>=0.27",
     "keyring>=25.0",
     "things.py>=0.0.15",
