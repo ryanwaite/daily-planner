@@ -2,15 +2,15 @@
 
 ## What this project is
 
-A Python MCP (Model Context Protocol) server that generates a printable two-page landscape PDF morning briefing. It is **not** a standalone app — it is invoked by a Copilot CLI agent skill (`morning-briefing`) which orchestrates the multi-step data gathering and calls back into the MCP tools to render the final PDF.
+A Python MCP (Model Context Protocol) server that generates a markdown morning briefing file. It is **not** a standalone app — it is invoked by a Copilot CLI agent skill (`morning-briefing`) which orchestrates the multi-step data gathering and calls back into the MCP tools to render the final markdown file.
 
 The agent (defined in `.github/agents/morning-briefing.agent.md`) calls four MCP tools exposed by this server:
 
 1. `get_today_tasks` / `get_tomorrow_tasks` — read from the local Things 3 SQLite database
 2. `get_repo_activity` — fetch commits, PRs, and issues from GitHub and Azure DevOps APIs
-3. `render_pdf` — accept all gathered data and produce the two-page PDF
+3. `render_markdown` — accept all gathered data and produce the markdown briefing file
 
-The agent itself generates the LLM-written repo narrative summaries between steps 2 and 3.
+The agent itself generates the LLM-written repo narrative summaries and action suggestions between steps 2 and 3.
 
 ## Commands
 
@@ -47,18 +47,14 @@ server.py            — MCP tool registration (thin wrappers only)
 tools/               — MCP tool handlers (orchestration, JSON serialization)
 integrations/        — External API clients (github.py, ado.py, things.py, auth.py)
 models/              — Dataclasses (no logic beyond validation in __post_init__)
-pdf/                 — ReportLab layout engine (renderer.py, page_one.py, page_two.py)
+markdown/            — Markdown renderer (renderer.py)
 config/              — TOML/txt config file loaders
 business_day.py      — Date arithmetic (next/last business day)
 ```
 
-### PDF layout
+### Markdown rendering
 
-The PDF is two landscape US Letter pages built with ReportLab's Platypus engine:
-- **Page 1**: Three-column layout (Calendar, Today Tasks, Tomorrow Tasks) — built in `pdf/page_one.py`
-- **Page 2**: Two-column layout (Repo Activity narratives) — built in `pdf/page_two.py`
-
-The renderer (`pdf/renderer.py`) sets up `BaseDocTemplate` with `PageTemplate`/`Frame` objects and uses `FrameBreak` to flow content across columns.
+The markdown file is a single file built with f-string concatenation in `markdown/renderer.py`. Tasks are grouped by Area ("No Area" first, then by area creation date). The renderer writes to the configured output directory.
 
 ### Authentication resolution
 

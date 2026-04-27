@@ -3,15 +3,14 @@
 import json
 
 
-class TestRenderPdfContract:
-    """Verify render_pdf tool accepts the documented input schema."""
+class TestRenderMarkdownContract:
+    """Verify render_markdown tool accepts the documented input schema."""
 
     def test_minimal_input_accepted(self):
-        """render_pdf must accept just repo_summaries (required)."""
-        from daily_planner.tools.render_pdf import render_pdf
+        """render_markdown must accept just repo_summaries (required)."""
+        from daily_planner.tools.render_markdown import render_markdown
 
-        # Will be validated when tool is implemented
-        assert callable(render_pdf)
+        assert callable(render_markdown)
 
     def test_full_input_shape(self):
         """Verify the full input shape matches contracts/mcp-tools.md."""
@@ -32,6 +31,8 @@ class TestRenderPdfContract:
                     "due_date": "2026-03-13",
                     "sort_position": 1,
                     "project": "daily-planner",
+                    "area": "Work",
+                    "area_created": "2025-01-15",
                     "tags": ["work"],
                 }
             ],
@@ -51,6 +52,12 @@ class TestRenderPdfContract:
                     "error": None,
                 }
             ],
+            "action_suggestions": [
+                {
+                    "task_title": "Fix faucet",
+                    "suggestion": "Call a plumber.",
+                }
+            ],
             "output_path": None,
         }
         # Ensure the keys are JSON-serializable
@@ -58,11 +65,12 @@ class TestRenderPdfContract:
         parsed = json.loads(serialized)
         assert "repo_summaries" in parsed
         assert "calendar_events" in parsed
+        assert "action_suggestions" in parsed
 
     def test_output_shape(self):
-        """render_pdf output must include pdf_path and pages."""
-        expected_keys = {"pdf_path", "pages"}
-        sample_output = {"pdf_path": "/Users/user/Desktop/2026-03-13 Friday.pdf", "pages": 2}
+        """render_markdown output must include markdown_path only (no pages)."""
+        expected_keys = {"markdown_path"}
+        sample_output = {"markdown_path": "/Users/user/Desktop/morning-briefing-2026-03-13.md"}
         assert expected_keys == set(sample_output.keys())
 
 
@@ -78,7 +86,8 @@ class TestGetTodayTasksContract:
         sample = {
             "tasks": [
                 {"title": "t", "due_date": "2026-03-13",
-                 "sort_position": 0, "project": None, "tags": []}
+                 "sort_position": 0, "project": None, "area": None,
+                 "area_created": None, "tags": []}
             ]
         }
         assert expected_keys <= set(sample.keys())

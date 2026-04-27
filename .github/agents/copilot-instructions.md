@@ -24,6 +24,7 @@ cd src [ONLY COMMANDS FOR ACTIVE TECHNOLOGIES][ONLY COMMANDS FOR ACTIVE TECHNOLO
 Python ≥ 3.9 (targeting 3.12, managed by UV): Follow standard conventions
 
 ## Recent Changes
+- 005-markdown-briefing-overhaul: Added Python ≥ 3.12 (managed by UV); `from __future__ import annotations` in every module
 - 001-morning-briefing-pdf: Added Python ≥ 3.12 (managed by UV); `from __future__ import annotations` in every module
 
 - 001-morning-briefing-pdf: Added Python ≥ 3.9 (targeting 3.12, managed by UV)

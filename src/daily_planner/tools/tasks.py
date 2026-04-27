@@ -27,6 +27,8 @@ async def get_today_tasks() -> str:
                 "due_date": t.due_date.isoformat(),
                 "sort_position": t.sort_position,
                 "project": t.project,
+                "area": t.area,
+                "area_created": t.area_created.isoformat() if t.area_created else None,
                 "tags": t.tags,
             }
             for t in tasks
@@ -58,6 +60,8 @@ async def get_tomorrow_tasks() -> str:
                 "due_date": t.due_date.isoformat(),
                 "sort_position": t.sort_position,
                 "project": t.project,
+                "area": t.area,
+                "area_created": t.area_created.isoformat() if t.area_created else None,
                 "tags": t.tags,
             }
             for t in tasks

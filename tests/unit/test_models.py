@@ -8,7 +8,7 @@ from daily_planner.models import BriefingData
 from daily_planner.models.calendar import CalendarEvent
 from daily_planner.models.config import Configuration
 from daily_planner.models.repo import ActivityItem, Repository
-from daily_planner.models.task import Task
+from daily_planner.models.task import ActionSuggestion, Task
 
 # --- CalendarEvent ---
 
@@ -153,8 +153,6 @@ class TestActivityItem:
 class TestConfiguration:
     def test_defaults(self):
         c = Configuration()
-        assert c.page_one_font_size == 9.0
-        assert c.page_two_font_size == 8.0
         assert c.output_path == "~/Desktop"
         assert c.repos_file == "config/repos.txt"
 
@@ -189,3 +187,28 @@ class TestBriefingData:
         )
         assert len(b.calendar_events) == 1
         assert len(b.today_tasks) == 1
+
+
+# --- ActionSuggestion ---
+
+
+class TestActionSuggestion:
+    def test_valid(self):
+        s = ActionSuggestion(task_title="Fix faucet", suggestion="Call a plumber.")
+        assert s.task_title == "Fix faucet"
+
+    def test_empty_title_raises(self):
+        with pytest.raises(ValueError, match="task_title must be non-empty"):
+            ActionSuggestion(task_title="  ", suggestion="Do something.")
+
+    def test_empty_suggestion_raises(self):
+        with pytest.raises(ValueError, match="suggestion must be non-empty"):
+            ActionSuggestion(task_title="Task", suggestion="  ")
+
+    def test_from_dict(self):
+        s = ActionSuggestion.from_dict({
+            "task_title": "Buy groceries",
+            "suggestion": "Make a list first.",
+        })
+        assert s.task_title == "Buy groceries"
+        assert s.suggestion == "Make a list first."

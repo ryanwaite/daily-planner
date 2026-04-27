@@ -11,35 +11,26 @@ from daily_planner.config.loader import load_configuration, load_repositories
 class TestLoadConfiguration:
     def test_missing_file_returns_defaults(self, tmp_path: Path):
         cfg = load_configuration(str(tmp_path / "nonexistent.toml"))
-        assert cfg.page_one_font_size == 9.0
-        assert cfg.page_two_font_size == 8.0
         assert cfg.output_path == "~/Desktop"
+        assert cfg.repos_file == "config/repos.txt"
 
     def test_valid_toml(self, tmp_path: Path):
         toml_file = tmp_path / "settings.toml"
         toml_file.write_text(textwrap.dedent("""\
-            [page_one]
-            font_size = 10.0
-
-            [page_two]
-            font_size = 7.5
-
             [output]
             path = "~/Documents"
             repos_file = "my_repos.txt"
         """))
         cfg = load_configuration(str(toml_file))
-        assert cfg.page_one_font_size == 10.0
-        assert cfg.page_two_font_size == 7.5
         assert cfg.output_path == "~/Documents"
         assert cfg.repos_file == "my_repos.txt"
 
     def test_partial_toml_uses_defaults(self, tmp_path: Path):
         toml_file = tmp_path / "settings.toml"
-        toml_file.write_text("[page_one]\nfont_size = 11.0\n")
+        toml_file.write_text("[output]\npath = \"~/Downloads\"\n")
         cfg = load_configuration(str(toml_file))
-        assert cfg.page_one_font_size == 11.0
-        assert cfg.page_two_font_size == 8.0  # default
+        assert cfg.output_path == "~/Downloads"
+        assert cfg.repos_file == "config/repos.txt"  # default
 
 
 class TestLoadRepositories:
