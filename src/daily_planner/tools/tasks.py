@@ -8,8 +8,22 @@ from datetime import date
 
 from daily_planner.business_day import next_business_day
 from daily_planner.integrations.things import get_tasks_for_date
+from daily_planner.models.task import Task
 
 _logger = logging.getLogger("daily_planner.debug")
+
+
+def _serialize_task(t: Task) -> dict:
+    """Convert a Task to a JSON-serializable dict."""
+    return {
+        "title": t.title,
+        "due_date": t.due_date.isoformat(),
+        "sort_position": t.sort_position,
+        "project": t.project,
+        "area": t.area,
+        "area_created": t.area_created.isoformat() if t.area_created else None,
+        "tags": t.tags,
+    }
 
 
 async def get_today_tasks() -> str:
@@ -40,20 +54,7 @@ async def get_today_tasks() -> str:
         },
     )
 
-    return json.dumps({
-        "tasks": [
-            {
-                "title": t.title,
-                "due_date": t.due_date.isoformat(),
-                "sort_position": t.sort_position,
-                "project": t.project,
-                "area": t.area,
-                "area_created": t.area_created.isoformat() if t.area_created else None,
-                "tags": t.tags,
-            }
-            for t in tasks
-        ]
-    })
+    return json.dumps({"tasks": [_serialize_task(t) for t in tasks]})
 
 
 async def get_tomorrow_tasks() -> str:
@@ -91,17 +92,6 @@ async def get_tomorrow_tasks() -> str:
     )
 
     return json.dumps({
-        "tasks": [
-            {
-                "title": t.title,
-                "due_date": t.due_date.isoformat(),
-                "sort_position": t.sort_position,
-                "project": t.project,
-                "area": t.area,
-                "area_created": t.area_created.isoformat() if t.area_created else None,
-                "tags": t.tags,
-            }
-            for t in tasks
-        ],
+        "tasks": [_serialize_task(t) for t in tasks],
         "target_date": target.isoformat(),
     })

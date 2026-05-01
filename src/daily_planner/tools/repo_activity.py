@@ -115,12 +115,15 @@ async def get_repo_activity(since_business_days: int | None = None) -> str:
             file_path.write_text(json.dumps(repo_data, indent=2), encoding="utf-8")
 
             relative_path = str(Path(".tmp") / "repo_activity" / file_name)
+            counts: dict[str, int] = {"commit": 0, "pr": 0, "issue": 0}
+            for a in activities:
+                counts[a.activity_type] = counts.get(a.activity_type, 0) + 1
             summary_entries.append({
                 "name": f"{repo.owner}/{repo.name}",
                 "platform": repo.platform,
-                "commits": sum(1 for a in activities if a.activity_type == "commit"),
-                "prs": sum(1 for a in activities if a.activity_type == "pr"),
-                "issues": sum(1 for a in activities if a.activity_type == "issue"),
+                "commits": counts["commit"],
+                "prs": counts["pr"],
+                "issues": counts["issue"],
                 "file": relative_path,
                 "error": None,
             })

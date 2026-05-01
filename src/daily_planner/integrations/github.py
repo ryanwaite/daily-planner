@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import base64
 import logging
 import re
@@ -207,8 +208,6 @@ async def _get_with_retry(
     retries: int = MAX_RETRIES,
 ) -> list | dict | None:
     """GET with single retry and exponential backoff."""
-    import asyncio
-
     for attempt in range(retries + 1):
         try:
             resp = await client.get(url, params=params)

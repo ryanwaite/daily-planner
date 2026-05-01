@@ -38,7 +38,7 @@ def load_repositories(repos_path: str | Path) -> list[Repository]:
     Invalid lines are skipped with a warning to stderr.
     Raises FileNotFoundError if the repos file does not exist.
     """
-    p = Path(repos_path)
+    p = Path(repos_path).expanduser()
     if not p.exists():
         raise FileNotFoundError(f"Repos config file not found at {repos_path}")
 

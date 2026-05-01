@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import logging
 import sys
 import time
@@ -37,7 +38,8 @@ async def fetch_ado_activity(
     }
 
     activities: list[ActivityItem] = []
-    description: str | None = None
+    # ADO has no equivalent of GitHub's README endpoint, so this is always None.
+    readme_excerpt: str | None = None
 
     async with httpx.AsyncClient(timeout=TIMEOUT, headers=headers) as client:
         # Commits
@@ -166,30 +168,40 @@ async def fetch_ado_activity(
         )
         if wiql_result is not None:
             work_items = wiql_result.get("workItems", [])
-            # Fetch details for first 50 work items
-            for wi in work_items[:50]:
-                wi_detail = await _get_with_retry(
+            wi_ids = [wi["id"] for wi in work_items[:50]]
+            if wi_ids:
+                ids_param = ",".join(str(i) for i in wi_ids)
+                wi_batch = await _get_with_retry(
                     client,
-                    f"https://dev.azure.com/{repo.owner}/{repo.project}/_apis/wit/workitems/{wi['id']}",
-                    params={"api-version": API_VERSION},
+                    f"https://dev.azure.com/{repo.owner}/{repo.project}/_apis/wit/workitems",
+                    params={"ids": ids_param, "api-version": API_VERSION},
                 )
-                if wi_detail and "fields" in wi_detail:
-                    fields = wi_detail["fields"]
-                    changed_date_str = fields.get("System.ChangedDate", "")
-                    try:
-                        ts = datetime.fromisoformat(changed_date_str.replace("Z", "+00:00"))
-                    except (ValueError, AttributeError):
-                        ts = datetime.now()
-                    activities.append(ActivityItem(
-                        repo=repo,
-                        activity_type="issue",
-                        title=fields.get("System.Title", "Untitled"),
-                        author=fields.get("System.ChangedBy", "unknown"),
-                        timestamp=ts,
-                        url=wi_detail.get("_links", {}).get("html", {}).get("href"),
-                    ))
+                if wi_batch is not None:
+                    for wi_detail in wi_batch.get("value", []):
+                        fields = wi_detail.get("fields", {})
+                        if not fields:
+                            continue
+                        changed_date_str = fields.get("System.ChangedDate", "")
+                        try:
+                            ts = datetime.fromisoformat(
+                                changed_date_str.replace("Z", "+00:00")
+                            )
+                        except (ValueError, AttributeError):
+                            ts = datetime.now()
+                        activities.append(ActivityItem(
+                            repo=repo,
+                            activity_type="issue",
+                            title=fields.get("System.Title", "Untitled"),
+                            author=fields.get("System.ChangedBy", "unknown"),
+                            timestamp=ts,
+                            url=(
+                                wi_detail.get("_links", {})
+                                .get("html", {})
+                                .get("href")
+                            ),
+                        ))
 
-    return activities, description
+    return activities, readme_excerpt
 
 
 async def _get_with_retry(
@@ -199,8 +211,6 @@ async def _get_with_retry(
     retries: int = MAX_RETRIES,
 ) -> dict | None:
     """GET with single retry and exponential backoff."""
-    import asyncio
-
     for attempt in range(retries + 1):
         try:
             resp = await client.get(url, params=params)
@@ -249,8 +259,6 @@ async def _post_with_retry(
     retries: int = MAX_RETRIES,
 ) -> dict | None:
     """POST with single retry and exponential backoff."""
-    import asyncio
-
     for attempt in range(retries + 1):
         try:
             resp = await client.post(url, params=params, json=json_body)
