@@ -19,4 +19,4 @@ class Configuration:
 
     @property
     def resolved_repos_file(self) -> Path:
-        return Path(self.repos_file)
+        return Path(self.repos_file).expanduser()
