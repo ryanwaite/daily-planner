@@ -6,6 +6,8 @@ import os
 import tempfile
 from pathlib import Path
 
+import pytest
+
 from daily_planner.__main__ import _setup_local_tmpdir
 
 
@@ -44,8 +46,13 @@ class TestSetupLocalTmpdir:
 
 
 class TestRendererRlTmpdir:
-    """Verify that importing the renderer module points ReportLab at .tmp/reportlab/."""
+    """Verify that importing the renderer module points ReportLab at .tmp/reportlab/.
+    
+    DEPRECATED: PDF feature was removed in spec 005 (markdown-briefing-overhaul).
+    These tests are obsolete and marked as skipped.
+    """
 
+    @pytest.mark.skip(reason="PDF feature removed in spec 005; using markdown instead")
     def test_renderer_configures_rl_tempdir_to_local_tmp(self):
         """After renderer is imported, _rl_tempdir must point to .tmp/reportlab/ under cwd."""
         from reportlab.lib import rltempfile
@@ -58,6 +65,7 @@ class TestRendererRlTmpdir:
         assert rl_dir.name == "reportlab"
         assert rl_dir.parent.name == ".tmp"
 
+    @pytest.mark.skip(reason="PDF feature removed in spec 005; using markdown instead")
     def test_renderer_rl_tempdir_exists(self):
         """The .tmp/reportlab/ directory must be created by the renderer on import."""
         from reportlab.lib import rltempfile

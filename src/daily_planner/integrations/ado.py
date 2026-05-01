@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
+import logging
 import sys
+import time
 from datetime import date, datetime
 
 import httpx
@@ -12,6 +14,8 @@ from daily_planner.models.repo import ActivityItem, Repository
 API_VERSION = "7.1"
 TIMEOUT = httpx.Timeout(connect=10, read=30, write=10, pool=10)
 MAX_RETRIES = 1
+
+_logger = logging.getLogger("daily_planner.debug")
 
 
 async def fetch_ado_activity(
@@ -37,10 +41,29 @@ async def fetch_ado_activity(
 
     async with httpx.AsyncClient(timeout=TIMEOUT, headers=headers) as client:
         # Commits
+        _logger.debug(
+            "Fetching ADO commits",
+            extra={
+                "operation": "ado.fetch_commits",
+                "direction": "request",
+                "data": {"repo": f"{repo.owner}/{repo.name}", "since": since.isoformat()},
+            },
+        )
+        t0 = time.perf_counter()
         commits = await _get_with_retry(
             client,
             f"{base}/git/repositories/{repo.name}/commits",
             params={"searchCriteria.fromDate": since.isoformat(), "api-version": API_VERSION},
+        )
+        elapsed = (time.perf_counter() - t0) * 1000
+        _logger.debug(
+            "ADO commits response",
+            extra={
+                "operation": "ado.fetch_commits",
+                "direction": "response",
+                "data": {"count": len(commits.get("value", [])) if commits else 0},
+                "duration_ms": round(elapsed, 2),
+            },
         )
         if commits is not None:
             for c in commits.get("value", []):
@@ -56,10 +79,29 @@ async def fetch_ado_activity(
                 ))
 
         # Pull Requests
+        _logger.debug(
+            "Fetching ADO pull requests",
+            extra={
+                "operation": "ado.fetch_prs",
+                "direction": "request",
+                "data": {"repo": f"{repo.owner}/{repo.name}"},
+            },
+        )
+        t0 = time.perf_counter()
         prs = await _get_with_retry(
             client,
             f"{base}/git/repositories/{repo.name}/pullrequests",
             params={"searchCriteria.status": "all", "api-version": API_VERSION},
+        )
+        elapsed = (time.perf_counter() - t0) * 1000
+        _logger.debug(
+            "ADO pull requests response",
+            extra={
+                "operation": "ado.fetch_prs",
+                "direction": "response",
+                "data": {"count": len(prs.get("value", [])) if prs else 0},
+                "duration_ms": round(elapsed, 2),
+            },
         )
         if prs is not None:
             for pr in prs.get("value", []):
@@ -95,11 +137,32 @@ async def fetch_ado_activity(
             f"WHERE [System.ChangedDate] >= '{since_str}' "
             f"ORDER BY [System.ChangedDate] DESC"
         )
+        _logger.debug(
+            "Fetching ADO work items via WIQL",
+            extra={
+                "operation": "ado.fetch_work_items",
+                "direction": "request",
+                "data": {"repo": f"{repo.owner}/{repo.name}", "since": since_str},
+            },
+        )
+        t0 = time.perf_counter()
         wiql_result = await _post_with_retry(
             client,
             f"{base}/wit/wiql",
             params={"api-version": API_VERSION},
             json_body={"query": wiql_query},
+        )
+        elapsed = (time.perf_counter() - t0) * 1000
+        _logger.debug(
+            "ADO work items response",
+            extra={
+                "operation": "ado.fetch_work_items",
+                "direction": "response",
+                "data": {
+                    "count": len(wiql_result.get("workItems", [])) if wiql_result else 0,
+                },
+                "duration_ms": round(elapsed, 2),
+            },
         )
         if wiql_result is not None:
             work_items = wiql_result.get("workItems", [])
@@ -144,10 +207,32 @@ async def _get_with_retry(
             if resp.status_code == 200:
                 return resp.json()
             if resp.status_code in (401, 403, 404):
+                _logger.error(
+                    f"ADO API returned {resp.status_code}",
+                    extra={
+                        "operation": "ado.get",
+                        "data": {"url": url, "status_code": resp.status_code},
+                    },
+                )
                 return None
         except httpx.TimeoutException:
-            pass
+            _logger.error(
+                "ADO API request timed out",
+                exc_info=True,
+                extra={
+                    "operation": "ado.get",
+                    "data": {"url": url, "attempt": attempt},
+                },
+            )
         except httpx.HTTPError:
+            _logger.error(
+                "ADO API request failed",
+                exc_info=True,
+                extra={
+                    "operation": "ado.get",
+                    "data": {"url": url, "attempt": attempt},
+                },
+            )
             print("ADO API request failed", file=sys.stderr)
 
         if attempt < retries:
@@ -172,10 +257,32 @@ async def _post_with_retry(
             if resp.status_code == 200:
                 return resp.json()
             if resp.status_code in (401, 403, 404):
+                _logger.error(
+                    f"ADO API POST returned {resp.status_code}",
+                    extra={
+                        "operation": "ado.post",
+                        "data": {"url": url, "status_code": resp.status_code},
+                    },
+                )
                 return None
         except httpx.TimeoutException:
-            pass
+            _logger.error(
+                "ADO API POST timed out",
+                exc_info=True,
+                extra={
+                    "operation": "ado.post",
+                    "data": {"url": url, "attempt": attempt},
+                },
+            )
         except httpx.HTTPError:
+            _logger.error(
+                "ADO API POST failed",
+                exc_info=True,
+                extra={
+                    "operation": "ado.post",
+                    "data": {"url": url, "attempt": attempt},
+                },
+            )
             print("ADO API request failed", file=sys.stderr)
 
         if attempt < retries:

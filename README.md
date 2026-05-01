@@ -145,6 +145,27 @@ uv run python -m daily_planner
 | PDF sections show "Unavailable" | Check stderr output for the specific integration error |
 | Font sizes not changing | Ensure `config/settings.toml` is valid TOML syntax |
 
+## Debug Logging
+
+Set `DAILY_PLANNER_DEBUG=1` to capture a detailed JSONL log of every tool invocation, API call, and error during a briefing run:
+
+```bash
+DAILY_PLANNER_DEBUG=1 uv run python -m daily_planner
+```
+
+The log file is written to the configured output directory as `debug_YYYY-MM-DD_HHMMSS_<pid>.jsonl`. Each line is a JSON object with fields:
+
+- `timestamp` — ISO 8601
+- `level` — DEBUG, INFO, ERROR
+- `operation` — e.g. `get_today_tasks`, `github.fetch_commits`
+- `message` — human-readable description
+- `direction` — `request`, `response`, or `internal`
+- `data` — structured payload (truncated at 5,000 chars)
+- `duration_ms` — elapsed time for response entries
+- `traceback` — full traceback on errors
+
+Debug logging writes only to a file (never stdout) so it cannot interfere with MCP stdio transport.
+
 ## Development
 
 ```bash

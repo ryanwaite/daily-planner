@@ -50,6 +50,7 @@ models/              — Dataclasses (no logic beyond validation in __post_init_
 markdown/            — Markdown renderer (renderer.py)
 config/              — TOML/txt config file loaders
 business_day.py      — Date arithmetic (next/last business day)
+logging.py           — Debug JSONL logging (setup, formatter, truncation)
 ```
 
 ### Markdown rendering

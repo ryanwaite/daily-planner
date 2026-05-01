@@ -36,6 +36,12 @@ def _setup_local_tmpdir() -> None:
 def main() -> None:
     _setup_local_tmpdir()
     try:
+        from daily_planner.config.loader import load_configuration
+        from daily_planner.logging import setup_debug_logging
+
+        config = load_configuration()
+        setup_debug_logging(config.resolved_output_path)
+
         from daily_planner.server import main as serve
         serve()
     except KeyboardInterrupt:

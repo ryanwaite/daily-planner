@@ -2,10 +2,13 @@
 
 from __future__ import annotations
 
+import logging
 from pathlib import Path
 
 from daily_planner.models import BriefingData
 from daily_planner.models.task import Task
+
+_logger = logging.getLogger("daily_planner.debug")
 
 
 def render_briefing_markdown(briefing: BriefingData) -> Path:
@@ -45,9 +48,18 @@ def render_briefing_markdown(briefing: BriefingData) -> Path:
     # Write to disk
     out_dir = briefing.config.resolved_output_path
     out_dir.mkdir(parents=True, exist_ok=True)
-    filename = f"morning-briefing-{briefing.date.isoformat()}.md"
+    filename = f"{briefing.date.isoformat()}-morning-briefing.md"
     out_path = out_dir / filename
     out_path.write_text(content, encoding="utf-8")
+
+    _logger.info(
+        "Briefing markdown file written",
+        extra={
+            "operation": "render_markdown",
+            "direction": "internal",
+            "data": {"path": str(out_path), "size_bytes": len(content)},
+        },
+    )
 
     return out_path
 
@@ -124,6 +136,19 @@ def _group_tasks_by_area(
                 and (area_dates[t.area] is None or t.area_created < area_dates[t.area])
             ):
                 area_dates[t.area] = t.area_created
+
+    _logger.debug(
+        "Tasks grouped by area",
+        extra={
+            "operation": "render_markdown.group_tasks",
+            "direction": "internal",
+            "data": {
+                "no_area_count": len(no_area),
+                "area_count": len(by_area),
+                "areas": list(by_area.keys()),
+            },
+        },
+    )
 
     # Sort areas: by creation date (oldest first), then alphabetically as fallback
     def _sort_key(area_name: str) -> tuple[int, object, str]:
