@@ -2,5 +2,5 @@
 # Customise output location for generated markdown briefings.
 
 [output]
-path = "~/Desktop"     # Directory where the markdown briefing is saved
+path = "~/Source/Obsidian/Daily/Morning Briefing"     # Directory where the markdown briefing is saved
 repos_file = "config/repos.txt"
