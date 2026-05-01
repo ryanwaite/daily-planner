@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import logging
 import sys
 from datetime import date
 from pathlib import Path
@@ -12,6 +13,8 @@ from daily_planner.config.loader import load_configuration, load_repositories
 from daily_planner.integrations.ado import fetch_ado_activity
 from daily_planner.integrations.auth import get_ado_token, get_github_token
 from daily_planner.integrations.github import fetch_github_activity
+
+_logger = logging.getLogger("daily_planner.debug")
 
 _ACTIVITY_DIR = Path.cwd() / ".tmp" / "repo_activity"
 
@@ -33,6 +36,11 @@ async def get_repo_activity(since_business_days: int | None = None) -> str:
     try:
         repos = load_repositories(config.repos_file)
     except FileNotFoundError as exc:
+        _logger.error(
+            f"Repos file not found: {exc}",
+            exc_info=True,
+            extra={"operation": "repo_activity", "data": {"error": str(exc)}},
+        )
         return json.dumps({"repos": [], "error": str(exc)})
 
     if not repos:
@@ -53,6 +61,18 @@ async def get_repo_activity(since_business_days: int | None = None) -> str:
 
     for repo in repos:
         try:
+            _logger.debug(
+                f"Fetching activity for {repo.owner}/{repo.name}",
+                extra={
+                    "operation": "repo_activity",
+                    "direction": "request",
+                    "data": {
+                        "repo": f"{repo.owner}/{repo.name}",
+                        "platform": repo.platform,
+                        "since": since.isoformat(),
+                    },
+                },
+            )
             if repo.platform == "github":
                 if not github_token:
                     summary_entries.append(_error_summary(repo, "GitHub authentication required"))
@@ -105,6 +125,14 @@ async def get_repo_activity(since_business_days: int | None = None) -> str:
                 "error": None,
             })
         except Exception:
+            _logger.error(
+                f"Error fetching activity for {repo.owner}/{repo.name}",
+                exc_info=True,
+                extra={
+                    "operation": "repo_activity",
+                    "data": {"repo": f"{repo.owner}/{repo.name}", "platform": repo.platform},
+                },
+            )
             print(f"Error fetching activity for {repo.owner}/{repo.name}", file=sys.stderr)
             summary_entries.append(_error_summary(repo, "Failed to fetch activity"))
 

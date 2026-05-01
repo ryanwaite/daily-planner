@@ -63,12 +63,12 @@ class TestRenderBriefingMarkdown:
     def test_file_created(self, sample_briefing: BriefingData, tmp_path: Path):
         path = render_briefing_markdown(sample_briefing)
         assert path.exists()
-        assert path.name == "morning-briefing-2026-04-26.md"
+        assert path.name == "2026-04-26-morning-briefing.md"
         assert path.parent == tmp_path
 
     def test_correct_filename_format(self, sample_briefing: BriefingData):
         path = render_briefing_markdown(sample_briefing)
-        assert path.name.startswith("morning-briefing-")
+        assert path.name.startswith("2026-04-26-")
         assert path.name.endswith(".md")
 
     def test_all_sections_present(self, sample_briefing: BriefingData):

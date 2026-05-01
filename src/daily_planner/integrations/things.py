@@ -2,10 +2,14 @@
 
 from __future__ import annotations
 
+import logging
 import sys
+import time
 from datetime import date, datetime
 
 from daily_planner.models.task import Task
+
+_logger = logging.getLogger("daily_planner.debug")
 
 try:
     import things
@@ -95,6 +99,15 @@ def get_tasks_for_date(target_date: date, query_type: str = "today") -> list[Tas
         return None
 
     try:
+        _logger.debug(
+            "Querying Things 3 database",
+            extra={
+                "operation": "things.get_tasks",
+                "direction": "request",
+                "data": {"target_date": target_date.isoformat(), "query_type": query_type},
+            },
+        )
+        t0 = time.perf_counter()
         if query_type == "today":
             raw_tasks = things.today()
         else:
@@ -104,8 +117,18 @@ def get_tasks_for_date(target_date: date, query_type: str = "today") -> list[Tas
                 start_date=target_date.isoformat(),
             )
     except Exception as exc:
+        _logger.error(
+            f"Failed to read Things database: {exc}",
+            exc_info=True,
+            extra={
+                "operation": "things.get_tasks",
+                "data": {"target_date": target_date.isoformat(), "query_type": query_type},
+            },
+        )
         print(f"Warning: Failed to read Things database: {exc}", file=sys.stderr)
         return None
+
+    elapsed = (time.perf_counter() - t0) * 1000
 
     area_map, project_titles, area_created_map = _build_metadata_maps()
 
@@ -124,5 +147,15 @@ def get_tasks_for_date(target_date: date, query_type: str = "today") -> list[Tas
             area_created=area_created_map.get(area_name) if area_name else None,
             tags=raw.get("tags", []) if isinstance(raw.get("tags"), list) else [],
         ))
+
+    _logger.debug(
+        "Things 3 query completed",
+        extra={
+            "operation": "things.get_tasks",
+            "direction": "response",
+            "data": {"task_count": len(tasks)},
+            "duration_ms": round(elapsed, 2),
+        },
+    )
 
     return tasks

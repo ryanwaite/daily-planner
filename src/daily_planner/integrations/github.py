@@ -3,8 +3,10 @@
 from __future__ import annotations
 
 import base64
+import logging
 import re
 import sys
+import time
 from datetime import date, datetime
 
 import httpx
@@ -15,6 +17,8 @@ API_BASE = "https://api.github.com"
 TIMEOUT = httpx.Timeout(connect=10, read=30, write=10, pool=10)
 MAX_RETRIES = 1
 MAX_BODY_LEN = 300
+
+_logger = logging.getLogger("daily_planner.debug")
 
 # Matches GitHub cross-references like #123, owner/repo#456
 _REF_PATTERN = re.compile(r"(?:[\w.-]+/[\w.-]+)?#\d+")
@@ -42,8 +46,27 @@ async def fetch_github_activity(
     async with httpx.AsyncClient(timeout=TIMEOUT, headers=headers) as client:
         # Commits
         url = f"{API_BASE}/repos/{repo.owner}/{repo.name}/commits"
+        _logger.debug(
+            "Fetching commits",
+            extra={
+                "operation": "github.fetch_commits",
+                "direction": "request",
+                "data": {"repo": f"{repo.owner}/{repo.name}", "since": since_iso},
+            },
+        )
+        t0 = time.perf_counter()
         commits = await _get_with_retry(
             client, url, params={"since": since_iso}
+        )
+        elapsed = (time.perf_counter() - t0) * 1000
+        _logger.debug(
+            "Commits response",
+            extra={
+                "operation": "github.fetch_commits",
+                "direction": "response",
+                "data": {"count": len(commits) if commits else 0},
+                "duration_ms": round(elapsed, 2),
+            },
         )
         if commits is not None:
             for c in commits:
@@ -68,10 +91,29 @@ async def fetch_github_activity(
                 ))
 
         # Pull Requests
+        _logger.debug(
+            "Fetching pull requests",
+            extra={
+                "operation": "github.fetch_prs",
+                "direction": "request",
+                "data": {"repo": f"{repo.owner}/{repo.name}"},
+            },
+        )
+        t0 = time.perf_counter()
         prs = await _get_with_retry(
             client,
             f"{API_BASE}/repos/{repo.owner}/{repo.name}/pulls",
             params={"state": "all", "sort": "updated", "direction": "desc", "per_page": 50},
+        )
+        elapsed = (time.perf_counter() - t0) * 1000
+        _logger.debug(
+            "Pull requests response",
+            extra={
+                "operation": "github.fetch_prs",
+                "direction": "response",
+                "data": {"count": len(prs) if prs else 0},
+                "duration_ms": round(elapsed, 2),
+            },
         )
         if prs is not None:
             for pr in prs:
@@ -98,10 +140,29 @@ async def fetch_github_activity(
                 ))
 
         # Issues (exclude PRs — GitHub includes PRs in issues endpoint)
+        _logger.debug(
+            "Fetching issues",
+            extra={
+                "operation": "github.fetch_issues",
+                "direction": "request",
+                "data": {"repo": f"{repo.owner}/{repo.name}", "since": since_iso},
+            },
+        )
+        t0 = time.perf_counter()
         issues = await _get_with_retry(
             client,
             f"{API_BASE}/repos/{repo.owner}/{repo.name}/issues",
             params={"state": "all", "since": since_iso, "per_page": 50},
+        )
+        elapsed = (time.perf_counter() - t0) * 1000
+        _logger.debug(
+            "Issues response",
+            extra={
+                "operation": "github.fetch_issues",
+                "direction": "response",
+                "data": {"count": len(issues) if issues else 0},
+                "duration_ms": round(elapsed, 2),
+            },
         )
         if issues is not None:
             for issue in issues:
@@ -154,10 +215,26 @@ async def _get_with_retry(
             if resp.status_code == 200:
                 return resp.json()
             if resp.status_code in (401, 403, 404):
+                _logger.error(
+                    f"GitHub API returned {resp.status_code}",
+                    extra={
+                        "operation": "github.get",
+                        "data": {"url": url, "status_code": resp.status_code},
+                    },
+                )
                 return None  # Don't retry auth or not-found errors
         except httpx.TimeoutException:
-            pass
+            _logger.error(
+                "GitHub API request timed out",
+                exc_info=True,
+                extra={"operation": "github.get", "data": {"url": url, "attempt": attempt}},
+            )
         except httpx.HTTPError:
+            _logger.error(
+                "GitHub API request failed",
+                exc_info=True,
+                extra={"operation": "github.get", "data": {"url": url, "attempt": attempt}},
+            )
             print("GitHub API request failed", file=sys.stderr)
 
         if attempt < retries:

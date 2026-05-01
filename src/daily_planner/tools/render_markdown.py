@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import logging
 from datetime import date, datetime
 from pathlib import Path
 
@@ -18,6 +19,8 @@ from daily_planner.models import (
 )
 from daily_planner.models.repo import ActivityItem
 from daily_planner.models.task import ActionSuggestion
+
+_logger = logging.getLogger("daily_planner.debug")
 
 # Allowed base directory for output (user's home directory)
 _ALLOWED_BASE = Path.home().resolve()
@@ -93,7 +96,31 @@ async def render_markdown(
         action_suggestions=parsed_suggestions,
     )
 
+    _logger.debug(
+        "Rendering markdown briefing",
+        extra={
+            "operation": "render_markdown",
+            "direction": "internal",
+            "data": {
+                "event_count": len(parsed_events) if parsed_events else 0,
+                "today_count": len(parsed_today) if parsed_today else 0,
+                "tomorrow_count": len(parsed_tomorrow) if parsed_tomorrow else 0,
+                "repo_count": len(parsed_summaries),
+                "suggestion_count": len(parsed_suggestions),
+            },
+        },
+    )
+
     markdown_path = render_briefing_markdown(briefing)
+
+    _logger.info(
+        "Markdown briefing written",
+        extra={
+            "operation": "render_markdown",
+            "direction": "response",
+            "data": {"path": str(markdown_path)},
+        },
+    )
 
     return json.dumps({"markdown_path": str(markdown_path)})
 
